@@ -58,7 +58,8 @@ with qsh.open("Si-9.18.2018-08-24.OrdLog.qsh") as qsh_file:
     try:
         while True:
             frame_timestamp, stream_index = qsh_file.read_frame_header()
-            ord_log_entry, aux_info_entry, quotes, deal_entry = qsh_file.read_ord_log_stream()
+
+            # Use stream_index to decide which data reader to call
 
             # Do something...
     except EOFError:
