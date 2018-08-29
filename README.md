@@ -1,5 +1,11 @@
 # QSH
 
+This library makes it possible to read QSH binary file format using Python.
+
+Project in a stage of active development and was tested only for binary files
+with gzip compression and one stream. Library for now supports only OrdLog data stream.
+Other types of streams will be added soon.
+
 ## Install
 
 ```
