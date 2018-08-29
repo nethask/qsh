@@ -234,7 +234,7 @@ class QshFile:
             stream_index = self.read_byte()
             return timestamp, stream_index
 
-        return timestamp, None
+        return timestamp, 0
 
     # Last values for read_ord_log_stream()
     last_exchange_milliseconds = 0
@@ -267,13 +267,13 @@ class QshFile:
 
         exchange_timestamp = to_datetime(self.last_exchange_milliseconds)
 
-        if available(availability_mask, OrdLogDataMask.ORDER_ID):
-            if is_add:
-                self.last_order_id = self.read_growing(self.last_order_id)
-            else:
-                self.last_order_id = self.read_relative(self.last_order_id)
-            
-        exchange_order_id = self.last_order_id
+        if not available(availability_mask, OrdLogDataMask.ORDER_ID):
+            exchange_order_id = self.last_order_id
+        elif is_add:
+            self.last_order_id = self.read_growing(self.last_order_id)
+            exchange_order_id = self.last_order_id
+        else:
+            exchange_order_id = self.read_relative(self.last_order_id)
 
         if available(availability_mask, OrdLogDataMask.ORDER_PRICE):
             self.last_order_price = self.read_relative(self.last_order_price)
