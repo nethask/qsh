@@ -1,6 +1,6 @@
 # QSH
 
-This library makes it possible to read QSH binary file format using Python.
+This library makes it easy to read QSH binary file format using Python.
 
 Project in a stage of active development and was tested only for binary files
 with gzip compression and one stream.
