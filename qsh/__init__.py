@@ -89,6 +89,17 @@ class AuxInfoEntry:
         self.rate      = rate
         self.message   = message
 
+class Message:
+    class Type:
+        INFORMATION = 1
+        WARNING     = 2
+        ERROR       = 3
+
+    def __init__(self, timestamp, message_type, text):
+        self.timestamp = timestamp
+        self.type      = message_type
+        self.text      = text
+
 
 class QshFile:
 
@@ -211,14 +222,14 @@ class QshFile:
         return datetime.datetime(1, 1, 1) + datetime.timedelta(milliseconds=milliseconds)
 
     def read_stream_header(self):
-        stream_id = self.read_byte()
+        stream_type = self.read_byte()
 
-        if stream_id == StreamType.MESSAGES:
-            return stream_id, None
+        if stream_type == StreamType.MESSAGES:
+            return stream_type, None
 
         instrument_code = self.read_string()
 
-        return stream_id, instrument_code
+        return stream_type, instrument_code
 
     # Last values for read_frame_header()
     last_frame_milliseconds = None
@@ -236,7 +247,7 @@ class QshFile:
 
         return timestamp, 0
 
-    # Last values for read_ord_log_stream()
+    # Last values for read_ord_log_data()
     last_exchange_milliseconds = 0
     last_order_id = 0
     last_order_price = 0
@@ -250,7 +261,7 @@ class QshFile:
     quotes = {}
 
     def read_ord_log_data(self):
-
+        """Reads order log data from file"""
         def available(list_mask, item_mask):
             return (list_mask & item_mask) != 0
 
@@ -334,7 +345,7 @@ class QshFile:
                 self.quotes[self.last_order_price] = quantity
 
             if available(actions_mask, OrdLogActionMask.END_OF_TRANSACTION):
-                quotes = self.quotes
+                quotes = dict(self.quotes)
 
                 ask_total = 0
                 bid_total = 0
@@ -353,3 +364,30 @@ class QshFile:
                 deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal)
 
         return ord_log_entry, aux_info_entry, quotes, deal_entry
+
+    def read_message_data(self):
+        """Reads message data from file"""
+        message_timestamp = self.read_datetime()
+        message_type      = self.read_byte()
+        message_text      = self.read_string()
+
+        return Message(message_timestamp, message_type, message_text)
+
+    # Last values for read_quotes_data()
+    quotes_last_price = 0
+    quotes_dict = {}
+
+    def read_quotes_data(self):
+        """Reads quotes data from file"""
+        count = self.read_leb128()
+
+        for i in range(count):
+            self.quotes_last_price = self.read_relative(self.quotes_last_price)
+            volume = self.read_leb128()
+
+            if volume == 0:
+                del self.quotes_dict[self.quotes_last_price]
+            else:
+                self.quotes_dict[self.quotes_last_price] = volume
+
+        return dict(self.quotes_dict)
