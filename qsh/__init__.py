@@ -14,6 +14,10 @@ def to_datetime(milliseconds_value):
     """Converts milliseconds since 01.01.0001 00:00:00 to datetime value"""
     return datetime.datetime(1, 1, 1) + datetime.timedelta(milliseconds=milliseconds_value)
 
+def available(list_mask, item_mask):
+    """Checks if item are in list using mask"""
+    return (list_mask & item_mask) != 0
+
 class StreamType:
     QUOTES     = 16
     DEALS      = 32
@@ -51,6 +55,15 @@ class OrdLogActionMask:
     CANCELED_GROUP     = 16384
     CROSS_TRADE        = 32768
 
+class DealDataMask:
+    TYPE     = 3
+    DATETIME = 4
+    ID       = 8
+    ORDER_ID = 16
+    PRICE    = 32
+    VOLUME   = 64
+    OI       = 128
+
 class OrdLogEntry:
     def __init__(self, actions_mask, exchange_timestamp, exchange_order_id, order_price, amount, amount_rest, deal_id, deal_price, oi_after_deal):
         self.actions_mask       = actions_mask
@@ -65,16 +78,19 @@ class OrdLogEntry:
 
 class DealEntry:
     class Type:
-        BUY  = 0
-        SELL = 1
+        UNKNOWN  = 0
+        BUY      = 1
+        SELL     = 2
+        RESERVED = 3
 
-    def __init__(self, deal_type, deal_id, timestamp, price, volume, oi):
+    def __init__(self, deal_type, deal_id, timestamp, price, volume, oi, order_id):
         self.type      = deal_type
         self.id        = deal_id
         self.timestamp = timestamp
         self.price     = price
         self.volume    = volume
         self.oi        = oi
+        self.order_id  = order_id
 
 class AuxInfoEntry:
     def __init__(self, timestamp, price, ask_total, bid_total, oi, hi_limit, low_limit, deposit, rate, message):
@@ -99,7 +115,6 @@ class Message:
         self.timestamp = timestamp
         self.type      = message_type
         self.text      = text
-
 
 class QshFile:
 
@@ -262,9 +277,6 @@ class QshFile:
 
     def read_ord_log_data(self):
         """Reads order log data from file"""
-        def available(list_mask, item_mask):
-            return (list_mask & item_mask) != 0
-
         availability_mask = self.read_byte()
         actions_mask      = self.read_uint16()
 
@@ -361,7 +373,7 @@ class QshFile:
             if self.last_pushed_deal_id < deal_id:
                 self.last_pushed_deal_id = deal_id
                 deal_type = DealEntry.Type.SELL if is_sell else DealEntry.Type.BUY
-                deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal)
+                deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal, 0)
 
         return ord_log_entry, aux_info_entry, quotes, deal_entry
 
@@ -391,3 +403,39 @@ class QshFile:
                 self.quotes_dict[self.quotes_last_price] = volume
 
         return dict(self.quotes_dict)
+
+    # Last values for read_deals_data()
+    deals_last_milliseconds = 0
+    deals_last_id = 0
+    deals_last_order_id = 0
+    deals_last_price = 0
+    deals_last_oi = 0
+
+    def read_deals_data(self):
+        """Reads deals data from file"""
+        availability_mask = self.read_byte()
+
+        deal_type = availability_mask & DealDataMask.TYPE
+
+        if available(availability_mask, DealDataMask.DATETIME):
+            self.deals_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.deals_last_milliseconds))
+
+        if available(availability_mask, DealDataMask.ID):
+            self.deals_last_id = self.read_growing(self.deals_last_id)
+
+        if available(availability_mask, DealDataMask.ORDER_ID):
+            self.deals_last_order_id = self.read_relative(self.deals_last_order_id)
+
+        if available(availability_mask, DealDataMask.PRICE):
+            self.deals_last_price = self.read_relative(self.deals_last_price)
+
+        if available(availability_mask, DealDataMask.VOLUME):
+            self.deals_last_volume = self.read_leb128()
+
+        if available(availability_mask, DealDataMask.OI):
+            self.deals_last_oi = self.read_relative(self.deals_last_oi)
+
+        return DealEntry(deal_type, self.deals_last_id, to_datetime(self.deals_last_milliseconds), self.deals_last_price, self.deals_last_volume, self.deals_last_oi, self.deals_last_order_id)
+
+    def read_auxinfo_data(self):
+        pass        

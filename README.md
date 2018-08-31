@@ -8,6 +8,7 @@ with gzip compression and one stream.
 Supported data streams:
 - OrdLog
 - Quote
+- Deal
 - Message
 
 Other types of streams will be added soon.
