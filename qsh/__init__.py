@@ -64,6 +64,16 @@ class DealDataMask:
     VOLUME   = 64
     OI       = 128
 
+class AuxInfoDataMask:
+    DATETIME     = 1
+    ASK_TOTAL    = 2
+    BID_TOTAL    = 4
+    OI           = 8
+    PRICE        = 16
+    SESSION_INFO = 32
+    RATE         = 64
+    MESSAGE      = 128
+
 class OrdLogEntry:
     def __init__(self, actions_mask, exchange_timestamp, exchange_order_id, order_price, amount, amount_rest, deal_id, deal_price, oi_after_deal):
         self.actions_mask       = actions_mask
@@ -264,15 +274,16 @@ class QshFile:
 
     # Last values for read_ord_log_data()
     last_exchange_milliseconds = 0
-    last_order_id = 0
-    last_order_price = 0
-    last_amount = 0
-    last_order_amount_rest = 0
-    last_deal_id = 0
-    last_deal_price = 0
-    last_oi_after_deal = 0
+    last_order_id              = 0
+    last_order_price           = 0
+    last_amount                = 0
+    last_order_amount_rest     = 0
+    last_deal_id               = 0
+    last_deal_price            = 0
+    last_oi_after_deal         = 0
 
-    last_pushed_deal_id = 0
+    last_pushed_deal_id        = 0
+
     quotes = {}
 
     def read_ord_log_data(self):
@@ -387,7 +398,7 @@ class QshFile:
 
     # Last values for read_quotes_data()
     quotes_last_price = 0
-    quotes_dict = {}
+    quotes_dict       = {}
 
     def read_quotes_data(self):
         """Reads quotes data from file"""
@@ -406,10 +417,10 @@ class QshFile:
 
     # Last values for read_deals_data()
     deals_last_milliseconds = 0
-    deals_last_id = 0
-    deals_last_order_id = 0
-    deals_last_price = 0
-    deals_last_oi = 0
+    deals_last_id           = 0
+    deals_last_order_id     = 0
+    deals_last_price        = 0
+    deals_last_oi           = 0
 
     def read_deals_data(self):
         """Reads deals data from file"""
@@ -437,5 +448,48 @@ class QshFile:
 
         return DealEntry(deal_type, self.deals_last_id, to_datetime(self.deals_last_milliseconds), self.deals_last_price, self.deals_last_volume, self.deals_last_oi, self.deals_last_order_id)
 
+    # Last values for read_auxinfo_data()
+    auxinfo_last_milliseconds = 0
+    auxinfo_last_ask_total    = 0
+    auxinfo_last_bid_total    = 0
+    auxinfo_last_oi           = 0
+    auxinfo_last_price        = 0
+    auxinfo_last_hi_limit     = 0
+    auxinfo_last_low_limit    = 0
+    auxinfo_last_deposit      = 0
+    auxinfo_last_rate         = 0
+
     def read_auxinfo_data(self):
-        pass        
+        """Reads auxinfo data from file"""
+        availability_mask = self.read_byte()
+
+        if available(availability_mask, AuxInfoDataMask.DATETIME):
+            self.auxinfo_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.auxinfo_last_milliseconds))
+
+        if available(availability_mask, AuxInfoDataMask.ASK_TOTAL):
+            self.auxinfo_last_ask_total = self.read_relative(self.auxinfo_last_ask_total)
+
+        if available(availability_mask, AuxInfoDataMask.BID_TOTAL):
+            self.auxinfo_last_bid_total = self.read_relative(self.auxinfo_last_bid_total)
+
+        if available(availability_mask, AuxInfoDataMask.OI):
+            self.auxinfo_last_oi = self.read_relative(self.auxinfo_last_oi)
+
+        if available(availability_mask, AuxInfoDataMask.PRICE):
+            self.auxinfo_last_price = self.read_relative(self.auxinfo_last_price)
+
+        if available(availability_mask, AuxInfoDataMask.SESSION_INFO):
+            self.auxinfo_last_hi_limit  = self.read_leb128()
+            self.auxinfo_last_low_limit = self.read_leb128()
+            self.auxinfo_last_deposit   = self.read_double()
+
+        if available(availability_mask, AuxInfoDataMask.RATE):
+            self.auxinfo_last_rate = self.read_double()
+
+        if available(availability_mask, AuxInfoDataMask.MESSAGE):
+            message = self.read_string()
+        else:
+            message = ""
+
+        return AuxInfoEntry(to_datetime(self.auxinfo_last_milliseconds), self.auxinfo_last_price, self.auxinfo_last_ask_total, self.auxinfo_last_bid_total, self.auxinfo_last_oi, self.auxinfo_last_hi_limit, self.auxinfo_last_low_limit, self.auxinfo_last_deposit, self.auxinfo_last_rate, message)
+

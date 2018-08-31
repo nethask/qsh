@@ -9,6 +9,7 @@ Supported data streams:
 - OrdLog
 - Quote
 - Deal
+- AuxInfo
 - Message
 
 Other types of streams will be added soon.
