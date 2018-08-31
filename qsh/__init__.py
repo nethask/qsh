@@ -310,28 +310,23 @@ class QshFile:
         ord_log_entry  = OrdLogEntry(actions_mask, exchange_timestamp, exchange_order_id, self.last_order_price, self.last_amount, amount_rest, deal_id, deal_price, oi_after_deal)
         deal_entry     = None
         aux_info_entry = None
+        quotes         = None
 
         if available(actions_mask, OrdLogActionMask.FLOW_START):
             self.quotes = {}
 
         if (is_buy ^ is_sell) and (not available(actions_mask, OrdLogActionMask.NON_SYSTEM)) and (not available(actions_mask, OrdLogActionMask.NON_ZERO_REPL_ACT)):
-            # Modifying order book
+            # Updating order book
             quantity = 0
             try:
                 quantity = self.quotes[self.last_order_price]
             except KeyError:
                 pass
 
-            if is_add:
-                if is_sell:
-                    quantity += self.last_amount
-                else:
-                    quantity -= self.last_amount
+            if (is_sell if is_add else is_buy):
+                quantity += self.last_amount
             else:
-                if is_buy:
-                    quantity += self.last_amount
-                else:
-                    quantity -= self.last_amount
+                quantity -= self.last_amount
 
             if quantity == 0:
                 del self.quotes[self.last_order_price]
@@ -339,7 +334,8 @@ class QshFile:
                 self.quotes[self.last_order_price] = quantity
 
             if available(actions_mask, OrdLogActionMask.END_OF_TRANSACTION):
-                # TODO: Make logic for quotes?
+                quotes = self.quotes
+
                 ask_total = 0
                 bid_total = 0
 
@@ -356,4 +352,4 @@ class QshFile:
                 deal_type = DealEntry.Type.SELL if is_sell else DealEntry.Type.BUY
                 deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal)
 
-        return ord_log_entry, aux_info_entry, self.quotes, deal_entry
+        return ord_log_entry, aux_info_entry, quotes, deal_entry
