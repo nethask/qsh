@@ -1,6 +1,7 @@
 import gzip
 import struct
 import datetime
+import io
 
 def open(filename, mode="rb"):
     """Open QSH file in binary mode"""
@@ -165,12 +166,17 @@ class QshFile:
     fileobj = None
 
     def __init__(self, filename=None, mode=None):
-        self.fileobj = gzip.open(filename)
+        self.fileobj = gzip.open(filename, mode)
 
         signature = self.read(len(self.header.signature.encode("utf8")))
     
         if self.header.signature != signature:
-            raise TypeError("Unsupported file format")
+            self.fileobj = io.open(filename, mode)
+
+            signature = self.read(len(self.header.signature.encode("utf8")))
+
+            if self.header.signature != signature:
+                raise TypeError("Unsupported file format")
 
         self.header.version       = self.read_byte()
         self.header.application   = self.read_string()

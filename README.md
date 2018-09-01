@@ -2,8 +2,11 @@
 
 This library makes it easy to read QSH binary file format of version 4 using Python.
 
-Project in a stage of active development and was tested only for binary files
-with gzip compression and one stream.
+Project in a stage of active development. Contribution are welcomed!
+
+Supported file formats:
+- Plain binary file - not tested
+- Compressed with gzip binary file
 
 Supported data streams:
 - Quotes
@@ -13,6 +16,12 @@ Supported data streams:
 - Messages  - not tested
 - AuxInfo
 - OrdLog
+
+Links to QSH archives:
+
+- [http://finam.qscalp.ru/](http://finam.qscalp.ru/)
+- [ftp://zerich.qscalp.ru/](ftp://zerich.qscalp.ru/)
+- [http://qsh.qscalp.ru/](http://qsh.qscalp.ru/)
 
 ## Install
 
@@ -55,27 +64,22 @@ For case of **more than one stream** in a file
 ```
 import qsh
 
+streams = {}
 with qsh.open("Si-9.18.2018-08-24.OrdLog.qsh") as qsh_file:
-    print("=== Header ===")
-    print("Signature: "     + str(qsh_file.header.signature))
-    print("Version: "       + str(qsh_file.header.version))
-    print("Application: "   + str(qsh_file.header.application))
-    print("Comment: "       + str(qsh_file.header.comment))
-    print("Created at: "    + str(qsh_file.header.created_at))
-    print("Streams count: " + str(qsh_file.header.streams_count))
-
     # If file contains two or more streams
-    for _ in range(qsh_file.header.streams_count):
+    for i in range(qsh_file.header.streams_count):
         stream_type, instrument_code = qsh_file.read_stream_header()
+        streams[i] = {}
+        streams[i]["type"] = stream_type
+        streams[i]["intrument_code"] = instrument_code
 
-    # Read frame header & frame data for one stream case
+    # Read frame header & frame data for more than one stream case
     try:
         while True:
             frame_timestamp, stream_index = qsh_file.read_frame_header()
-
-            # Use stream_index & stream_type to decide which data reader to call
-
-            # Do something...
+            
+            if streams[stream_index]["type"] == qsh.StreamType.ORD_LOG:
+                pass # Do something...
     except EOFError:
         pass
 ```
