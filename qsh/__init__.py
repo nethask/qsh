@@ -311,6 +311,7 @@ class QshFile:
     last_pushed_deal_id        = 0
 
     quotes = {}
+    external_quotes = {}
 
     def read_ord_log_data(self):
         """Reads order log data from file"""
@@ -393,6 +394,8 @@ class QshFile:
                 self.quotes[self.last_order_price] = quantity
 
             if available(actions_mask, OrdLogActionMask.END_OF_TRANSACTION):
+                self.external_quotes = dict(self.quotes)
+
                 ask_total = 0
                 bid_total = 0
 
@@ -409,7 +412,7 @@ class QshFile:
                 deal_type = DealEntry.Type.SELL if is_sell else DealEntry.Type.BUY
                 deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal, 0)
 
-        return ord_log_entry, aux_info_entry, dict(self.quotes), deal_entry
+        return ord_log_entry, aux_info_entry, self.external_quotes, deal_entry
 
     def read_message_data(self):
         """Reads message data from file"""

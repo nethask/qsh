@@ -1,20 +1,18 @@
 # QSH
 
-This library makes it easy to read QSH binary file format using Python.
+This library makes it easy to read QSH binary file format of version 4 using Python.
 
 Project in a stage of active development and was tested only for binary files
 with gzip compression and one stream.
 
 Supported data streams:
-- OrdLog
-- Quote
-- Deal
+- Quotes
+- Deals
+- OwnOrders - not tested
+- OwnTrades - not tested
+- Messages  - not tested
 - AuxInfo
-- Message  - not tested
-- OwnTrade - not tested
-- OwnOrder - not tested
-
-Developed for version 4 of QSH file format.
+- OrdLog
 
 ## Install
 
