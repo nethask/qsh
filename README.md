@@ -68,10 +68,8 @@ streams = {}
 with qsh.open("Si-9.18.2018-08-24.OrdLog.qsh") as qsh_file:
     # If file contains two or more streams
     for i in range(qsh_file.header.streams_count):
-        stream_type, instrument_code = qsh_file.read_stream_header()
-        streams[i] = {}
-        streams[i]["type"] = stream_type
-        streams[i]["intrument_code"] = instrument_code
+        stream_type, stream_info = qsh_file.read_stream_header()
+        streams[i] = {"type": stream_type, "info": stream_info}
 
     # Read frame header & frame data for more than one stream case
     try:
