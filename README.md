@@ -19,9 +19,9 @@ Supported data streams:
 
 Links to QSH archives:
 
-- [http://finam.qscalp.ru/](http://finam.qscalp.ru/)
-- [ftp://zerich.qscalp.ru/](ftp://zerich.qscalp.ru/)
-- [http://qsh.qscalp.ru/](http://qsh.qscalp.ru/)
+- <a href="http://finam.qscalp.ru/">http://finam.qscalp.ru/</a>
+- <a href="ftp://zerich.qscalp.ru/">ftp://zerich.qscalp.ru/</a>
+- <a href="http://qsh.qscalp.ru/">http://qsh.qscalp.ru/</a>
 
 ## Install
 
