@@ -10,9 +10,9 @@ Supported data streams:
 - Quote
 - Deal
 - AuxInfo
-- Message
-
-Other types of streams will be added soon.
+- Message  - not tested
+- OwnTrade - not tested
+- OwnOrder - not tested
 
 Developed for version 4 of QSH file format.
 

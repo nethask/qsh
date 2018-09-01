@@ -74,6 +74,12 @@ class AuxInfoDataMask:
     RATE         = 64
     MESSAGE      = 128
 
+class OwnOrderDataMask:
+    DROP_ALL = 1
+    ACTIVE   = 2
+    EXTERNAL = 4
+    STOP     = 8
+
 class OrdLogEntry:
     def __init__(self, actions_mask, exchange_timestamp, exchange_order_id, order_price, amount, amount_rest, deal_id, deal_price, oi_after_deal):
         self.actions_mask       = actions_mask
@@ -125,6 +131,26 @@ class Message:
         self.timestamp = timestamp
         self.type      = message_type
         self.text      = text
+
+class OwnTrade:
+    def __init__(self, timestamp, trade_id, order_id, price, volume):
+        self.timestamp = timestamp
+        self.trade_id  = trade_id
+        self.order_id  = order_id
+        self.price     = price
+        self.volume    = volume
+
+class OwnOrder:
+    class Type:
+        NONE    = 0
+        REGULAR = 1
+        STOP    = 2
+
+    def __init__(self, order_type, order_id, price, amount_rest):
+        self.type        = order_type
+        self.id          = order_id
+        self.price       = price
+        self.amount_rest = amount_rest
 
 class QshFile:
 
@@ -344,7 +370,6 @@ class QshFile:
         ord_log_entry  = OrdLogEntry(actions_mask, exchange_timestamp, exchange_order_id, self.last_order_price, self.last_amount, amount_rest, deal_id, deal_price, oi_after_deal)
         deal_entry     = None
         aux_info_entry = None
-        quotes         = None
 
         if available(actions_mask, OrdLogActionMask.FLOW_START):
             self.quotes = {}
@@ -368,8 +393,6 @@ class QshFile:
                 self.quotes[self.last_order_price] = quantity
 
             if available(actions_mask, OrdLogActionMask.END_OF_TRANSACTION):
-                quotes = dict(self.quotes)
-
                 ask_total = 0
                 bid_total = 0
 
@@ -386,7 +409,7 @@ class QshFile:
                 deal_type = DealEntry.Type.SELL if is_sell else DealEntry.Type.BUY
                 deal_entry = DealEntry(deal_type, deal_id, exchange_timestamp, deal_price, self.last_amount, oi_after_deal, 0)
 
-        return ord_log_entry, aux_info_entry, quotes, deal_entry
+        return ord_log_entry, aux_info_entry, dict(self.quotes), deal_entry
 
     def read_message_data(self):
         """Reads message data from file"""
@@ -493,3 +516,41 @@ class QshFile:
 
         return AuxInfoEntry(to_datetime(self.auxinfo_last_milliseconds), self.auxinfo_last_price, self.auxinfo_last_ask_total, self.auxinfo_last_bid_total, self.auxinfo_last_oi, self.auxinfo_last_hi_limit, self.auxinfo_last_low_limit, self.auxinfo_last_deposit, self.auxinfo_last_rate, message)
 
+    def read_own_orders_data(self):
+        """Reads own orders data from file"""
+        availability_mask = self.read_byte()
+
+        if available(availability_mask, OwnOrderDataMask.DROP_ALL):
+            return None
+        
+        order_type = OwnOrder.Type.NONE
+
+        if available(availability_mask, OwnOrderDataMask.ACTIVE):
+            if available(availability_mask, OwnOrderDataMask.STOP):
+                order_type = OwnOrder.Type.STOP
+            else:
+                order_type = OwnOrder.Type.REGULAR
+
+        order_id    = self.read_leb128()
+        order_price = self.read_leb128()
+        amount_rest = self.read_leb128()
+
+        return OwnOrder(order_type, order_id, order_price, amount_rest)
+
+    # Last values for read_own_trades_data()
+    own_trades_last_milliseconds = 0
+    own_trades_last_trade_id     = 0
+    own_trades_last_order_id     = 0
+    own_trades_last_price        = 0
+
+    def read_own_trades_data(self):
+        """Reads own trades data from file"""
+        self.own_trades_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.own_trades_last_milliseconds))
+
+        self.own_trades_last_trade_id = self.read_relative(self.own_trades_last_trade_id)
+        self.own_trades_last_order_id = self.read_relative(self.own_trades_last_order_id)
+        self.own_trades_last_price    = self.read_relative(self.own_trades_last_price)
+
+        volume = self.read_leb128()
+
+        return OwnTrade(to_datetime(self.own_trades_last_milliseconds), self.own_trades_last_trade_id, self.own_trades_last_order_id, self.own_trades_last_price, volume)
