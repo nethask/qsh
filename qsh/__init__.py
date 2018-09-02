@@ -1,7 +1,8 @@
+import io
 import gzip
 import struct
 import datetime
-import io
+from dateutil import tz
 
 def open(filename, mode="rb"):
     """Open QSH file in binary mode"""
@@ -28,60 +29,35 @@ class StreamType:
     AUX_INFO   = 96
     ORD_LOG    = 112
 
-class OrdLogDataMask:
-    DATETIME          = 1
-    ORDER_ID          = 2
-    ORDER_PRICE       = 4
-    AMOUNT            = 8
-    ORDER_AMOUNT_REST = 16
-    DEAL_ID           = 32
-    DEAL_PRICE        = 64
-    OI_AFTER_DEAL     = 128
-
-class OrdLogActionMask:
-    NON_ZERO_REPL_ACT  = 1
-    FLOW_START         = 2
-    ADD                = 4
-    FILL               = 8
-    BUY                = 16
-    SELL               = 32
-    SNAPSHOT           = 64
-    QUOTE              = 128
-    COUNTER            = 256
-    NON_SYSTEM         = 512
-    END_OF_TRANSACTION = 1024
-    FILL_OR_KILL       = 2048
-    MOVED              = 4096
-    CANCELED           = 8192
-    CANCELED_GROUP     = 16384
-    CROSS_TRADE        = 32768
-
-class DealDataMask:
-    TYPE     = 3
-    DATETIME = 4
-    ID       = 8
-    ORDER_ID = 16
-    PRICE    = 32
-    VOLUME   = 64
-    OI       = 128
-
-class AuxInfoDataMask:
-    DATETIME     = 1
-    ASK_TOTAL    = 2
-    BID_TOTAL    = 4
-    OI           = 8
-    PRICE        = 16
-    SESSION_INFO = 32
-    RATE         = 64
-    MESSAGE      = 128
-
-class OwnOrderDataMask:
-    DROP_ALL = 1
-    ACTIVE   = 2
-    EXTERNAL = 4
-    STOP     = 8
-
 class OrdLogEntry:
+    class DataFlag:
+        DATETIME          = 1
+        ORDER_ID          = 2
+        ORDER_PRICE       = 4
+        AMOUNT            = 8
+        ORDER_AMOUNT_REST = 16
+        DEAL_ID           = 32
+        DEAL_PRICE        = 64
+        OI_AFTER_DEAL     = 128
+
+    class ActionFlag:
+        NON_ZERO_REPL_ACT  = 1
+        FLOW_START         = 2
+        ADD                = 4
+        FILL               = 8
+        BUY                = 16
+        SELL               = 32
+        SNAPSHOT           = 64
+        QUOTE              = 128
+        COUNTER            = 256
+        NON_SYSTEM         = 512
+        END_OF_TRANSACTION = 1024
+        FILL_OR_KILL       = 2048
+        MOVED              = 4096
+        CANCELED           = 8192
+        CANCELED_GROUP     = 16384
+        CROSS_TRADE        = 32768
+
     def __init__(self, actions_mask, exchange_timestamp, exchange_order_id, order_price, amount, amount_rest, deal_id, deal_price, oi_after_deal):
         self.actions_mask       = actions_mask
         self.exchange_timestamp = exchange_timestamp
@@ -93,7 +69,19 @@ class OrdLogEntry:
         self.deal_price         = deal_price
         self.oi_after_deal      = oi_after_deal
 
+    def __str__(self):
+        return ";".join((str(self.actions_mask), self.exchange_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.exchange_order_id), str(self.order_price), str(self.amount), str(self.amount_rest), str(self.deal_id), str(self.deal_price), str(self.oi_after_deal)))
+
 class DealEntry:
+    class DataFlag:
+        TYPE     = 3
+        DATETIME = 4
+        ID       = 8
+        ORDER_ID = 16
+        PRICE    = 32
+        VOLUME   = 64
+        OI       = 128
+
     class Type:
         UNKNOWN  = 0
         BUY      = 1
@@ -109,7 +97,20 @@ class DealEntry:
         self.oi        = oi
         self.order_id  = order_id
 
+    def __str__(self):
+        return ";".join((str(self.type), str(self.id), self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.price), str(self.volume), str(self.oi), str(self.order_id)))
+
 class AuxInfoEntry:
+    class DataFlag:
+        DATETIME     = 1
+        ASK_TOTAL    = 2
+        BID_TOTAL    = 4
+        OI           = 8
+        PRICE        = 16
+        SESSION_INFO = 32
+        RATE         = 64
+        MESSAGE      = 128
+
     def __init__(self, timestamp, price, ask_total, bid_total, oi, hi_limit, low_limit, deposit, rate, message):
         self.timestamp = timestamp
         self.price     = price
@@ -122,6 +123,9 @@ class AuxInfoEntry:
         self.rate      = rate
         self.message   = message
 
+    def __str__(self):
+        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.price), str(self.ask_total), str(self.bid_total), str(self.oi), str(self.hi_limit), str(self.low_limit), str(self.deposit), str(self.rate), str(self.message)))
+
 class Message:
     class Type:
         INFORMATION = 1
@@ -133,6 +137,9 @@ class Message:
         self.type      = message_type
         self.text      = text
 
+    def __str__(self):
+        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.type), str(self.text)))
+
 class OwnTrade:
     def __init__(self, timestamp, trade_id, order_id, price, volume):
         self.timestamp = timestamp
@@ -141,7 +148,16 @@ class OwnTrade:
         self.price     = price
         self.volume    = volume
 
+    def __str__(self):
+        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.trade_id), str(self.order_id), str(self.price), str(self.volume)))
+
 class OwnOrder:
+    class DataFlag:
+        DROP_ALL = 1
+        ACTIVE   = 2
+        EXTERNAL = 4
+        STOP     = 8
+
     class Type:
         NONE    = 0
         REGULAR = 1
@@ -152,6 +168,9 @@ class OwnOrder:
         self.id          = order_id
         self.price       = price
         self.amount_rest = amount_rest
+
+    def __str__(self):
+        return ";".join((str(self.type), str(self.id), str(self.price), str(self.amount_rest)))
 
 class QshFile:
 
@@ -164,6 +183,9 @@ class QshFile:
         streams_count = None
 
     fileobj = None
+
+    from_zone = tz.gettz("UTC")
+    to_zone   = tz.gettz("Europe/Moscow")
 
     def __init__(self, filename=None, mode=None):
         self.fileobj = gzip.open(filename, mode)
@@ -181,7 +203,8 @@ class QshFile:
         self.header.version       = self.read_byte()
         self.header.application   = self.read_string()
         self.header.comment       = self.read_string()
-        self.header.created_at    = self.read_datetime()
+        self.last_created_at_milliseconds = to_milliseconds(self.read_datetime())
+        self.header.created_at    = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
         self.header.streams_count = self.read_byte()
             
     def __enter__(self):
@@ -293,10 +316,11 @@ class QshFile:
 
     def read_frame_header(self):
         if self.last_frame_milliseconds is None:
-            self.last_frame_milliseconds = to_milliseconds(self.header.created_at)
+            self.last_frame_milliseconds = self.last_created_at_milliseconds
 
         timestamp = self.read_growing_datetime(self.last_frame_milliseconds)
         self.last_frame_milliseconds = to_milliseconds(timestamp)
+        timestamp = timestamp.replace(tzinfo=self.from_zone).astimezone(self.to_zone)
 
         if self.header.streams_count > 1:
             stream_index = self.read_byte()
@@ -324,17 +348,17 @@ class QshFile:
         availability_mask = self.read_byte()
         actions_mask      = self.read_uint16()
 
-        is_add  = True if available(actions_mask, OrdLogActionMask.ADD) else False
-        is_fill = True if available(actions_mask, OrdLogActionMask.FILL) else False
-        is_buy  = True if available(actions_mask, OrdLogActionMask.BUY) else False
-        is_sell = True if available(actions_mask, OrdLogActionMask.SELL) else False
+        is_add  = True if available(actions_mask, OrdLogEntry.ActionFlag.ADD) else False
+        is_fill = True if available(actions_mask, OrdLogEntry.ActionFlag.FILL) else False
+        is_buy  = True if available(actions_mask, OrdLogEntry.ActionFlag.BUY) else False
+        is_sell = True if available(actions_mask, OrdLogEntry.ActionFlag.SELL) else False
 
-        if available(availability_mask, OrdLogDataMask.DATETIME):
+        if available(availability_mask, OrdLogEntry.DataFlag.DATETIME):
             self.last_exchange_milliseconds = to_milliseconds(self.read_growing_datetime(self.last_exchange_milliseconds))
 
-        exchange_timestamp = to_datetime(self.last_exchange_milliseconds)
+        exchange_timestamp = to_datetime(self.last_exchange_milliseconds).replace(tzinfo=self.to_zone)
 
-        if not available(availability_mask, OrdLogDataMask.ORDER_ID):
+        if not available(availability_mask, OrdLogEntry.DataFlag.ORDER_ID):
             exchange_order_id = self.last_order_id
         elif is_add:
             self.last_order_id = self.read_growing(self.last_order_id)
@@ -342,29 +366,29 @@ class QshFile:
         else:
             exchange_order_id = self.read_relative(self.last_order_id)
 
-        if available(availability_mask, OrdLogDataMask.ORDER_PRICE):
+        if available(availability_mask, OrdLogEntry.DataFlag.ORDER_PRICE):
             self.last_order_price = self.read_relative(self.last_order_price)
 
-        if available(availability_mask, OrdLogDataMask.AMOUNT):
+        if available(availability_mask, OrdLogEntry.DataFlag.AMOUNT):
             self.last_amount = self.read_leb128()
 
         if is_fill:
-            if available(availability_mask, OrdLogDataMask.ORDER_AMOUNT_REST):
+            if available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
                 self.last_order_amount_rest = self.read_leb128()
             
             amount_rest = self.last_order_amount_rest
 
-            if available(availability_mask, OrdLogDataMask.DEAL_ID):
+            if available(availability_mask, OrdLogEntry.DataFlag.DEAL_ID):
                 self.last_deal_id = self.read_growing(self.last_deal_id)
                 
             deal_id = self.last_deal_id
             
-            if available(availability_mask, OrdLogDataMask.DEAL_PRICE):
+            if available(availability_mask, OrdLogEntry.DataFlag.DEAL_PRICE):
                 self.last_deal_price = self.read_relative(self.last_deal_price)
 
             deal_price = self.last_deal_price
             
-            if available(availability_mask, OrdLogDataMask.OI_AFTER_DEAL):
+            if available(availability_mask, OrdLogEntry.DataFlag.OI_AFTER_DEAL):
                 self.last_oi_after_deal = self.read_relative(self.last_oi_after_deal)
             
             oi_after_deal = self.last_oi_after_deal
@@ -378,10 +402,10 @@ class QshFile:
         deal_entry     = None
         aux_info_entry = None
 
-        if available(actions_mask, OrdLogActionMask.FLOW_START):
+        if available(actions_mask, OrdLogEntry.ActionFlag.FLOW_START):
             self.quotes = {}
 
-        if (is_buy ^ is_sell) and (not available(actions_mask, OrdLogActionMask.NON_SYSTEM)) and (not available(actions_mask, OrdLogActionMask.NON_ZERO_REPL_ACT)):
+        if (is_buy ^ is_sell) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_SYSTEM)) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_ZERO_REPL_ACT)):
             # Updating order book
             quantity = 0
             try:
@@ -399,7 +423,7 @@ class QshFile:
             else:
                 self.quotes[self.last_order_price] = quantity
 
-            if available(actions_mask, OrdLogActionMask.END_OF_TRANSACTION):
+            if available(actions_mask, OrdLogEntry.ActionFlag.END_OF_TRANSACTION):
                 self.external_quotes = dict(self.quotes)
 
                 ask_total = 0
@@ -422,7 +446,7 @@ class QshFile:
 
     def read_message_data(self):
         """Reads message data from file"""
-        message_timestamp = self.read_datetime()
+        message_timestamp = self.read_datetime().replace(tzinfo=self.to_zone)
         message_type      = self.read_byte()
         message_text      = self.read_string()
 
@@ -458,27 +482,29 @@ class QshFile:
         """Reads deals data from file"""
         availability_mask = self.read_byte()
 
-        deal_type = availability_mask & DealDataMask.TYPE
+        deal_type = availability_mask & DealEntry.DataFlag.TYPE
 
-        if available(availability_mask, DealDataMask.DATETIME):
+        if available(availability_mask, DealEntry.DataFlag.DATETIME):
             self.deals_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.deals_last_milliseconds))
 
-        if available(availability_mask, DealDataMask.ID):
+        if available(availability_mask, DealEntry.DataFlag.ID):
             self.deals_last_id = self.read_growing(self.deals_last_id)
 
-        if available(availability_mask, DealDataMask.ORDER_ID):
+        if available(availability_mask, DealEntry.DataFlag.ORDER_ID):
             self.deals_last_order_id = self.read_relative(self.deals_last_order_id)
 
-        if available(availability_mask, DealDataMask.PRICE):
+        if available(availability_mask, DealEntry.DataFlag.PRICE):
             self.deals_last_price = self.read_relative(self.deals_last_price)
 
-        if available(availability_mask, DealDataMask.VOLUME):
+        if available(availability_mask, DealEntry.DataFlag.VOLUME):
             self.deals_last_volume = self.read_leb128()
 
-        if available(availability_mask, DealDataMask.OI):
+        if available(availability_mask, DealEntry.DataFlag.OI):
             self.deals_last_oi = self.read_relative(self.deals_last_oi)
 
-        return DealEntry(deal_type, self.deals_last_id, to_datetime(self.deals_last_milliseconds), self.deals_last_price, self.deals_last_volume, self.deals_last_oi, self.deals_last_order_id)
+        deal_timestamp = to_datetime(self.deals_last_milliseconds).replace(tzinfo=self.to_zone)
+
+        return DealEntry(deal_type, self.deals_last_id, deal_timestamp, self.deals_last_price, self.deals_last_volume, self.deals_last_oi, self.deals_last_order_id)
 
     # Last values for read_auxinfo_data()
     auxinfo_last_milliseconds = 0
@@ -495,47 +521,49 @@ class QshFile:
         """Reads auxinfo data from file"""
         availability_mask = self.read_byte()
 
-        if available(availability_mask, AuxInfoDataMask.DATETIME):
+        if available(availability_mask, AuxInfoEntry.DataFlag.DATETIME):
             self.auxinfo_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.auxinfo_last_milliseconds))
 
-        if available(availability_mask, AuxInfoDataMask.ASK_TOTAL):
+        if available(availability_mask, AuxInfoEntry.DataFlag.ASK_TOTAL):
             self.auxinfo_last_ask_total = self.read_relative(self.auxinfo_last_ask_total)
 
-        if available(availability_mask, AuxInfoDataMask.BID_TOTAL):
+        if available(availability_mask, AuxInfoEntry.DataFlag.BID_TOTAL):
             self.auxinfo_last_bid_total = self.read_relative(self.auxinfo_last_bid_total)
 
-        if available(availability_mask, AuxInfoDataMask.OI):
+        if available(availability_mask, AuxInfoEntry.DataFlag.OI):
             self.auxinfo_last_oi = self.read_relative(self.auxinfo_last_oi)
 
-        if available(availability_mask, AuxInfoDataMask.PRICE):
+        if available(availability_mask, AuxInfoEntry.DataFlag.PRICE):
             self.auxinfo_last_price = self.read_relative(self.auxinfo_last_price)
 
-        if available(availability_mask, AuxInfoDataMask.SESSION_INFO):
+        if available(availability_mask, AuxInfoEntry.DataFlag.SESSION_INFO):
             self.auxinfo_last_hi_limit  = self.read_leb128()
             self.auxinfo_last_low_limit = self.read_leb128()
             self.auxinfo_last_deposit   = self.read_double()
 
-        if available(availability_mask, AuxInfoDataMask.RATE):
+        if available(availability_mask, AuxInfoEntry.DataFlag.RATE):
             self.auxinfo_last_rate = self.read_double()
 
-        if available(availability_mask, AuxInfoDataMask.MESSAGE):
+        if available(availability_mask, AuxInfoEntry.DataFlag.MESSAGE):
             message = self.read_string()
         else:
             message = ""
 
-        return AuxInfoEntry(to_datetime(self.auxinfo_last_milliseconds), self.auxinfo_last_price, self.auxinfo_last_ask_total, self.auxinfo_last_bid_total, self.auxinfo_last_oi, self.auxinfo_last_hi_limit, self.auxinfo_last_low_limit, self.auxinfo_last_deposit, self.auxinfo_last_rate, message)
+        timestamp = to_datetime(self.auxinfo_last_milliseconds).replace(tzinfo=self.to_zone)
+
+        return AuxInfoEntry(timestamp, self.auxinfo_last_price, self.auxinfo_last_ask_total, self.auxinfo_last_bid_total, self.auxinfo_last_oi, self.auxinfo_last_hi_limit, self.auxinfo_last_low_limit, self.auxinfo_last_deposit, self.auxinfo_last_rate, message)
 
     def read_own_orders_data(self):
         """Reads own orders data from file"""
         availability_mask = self.read_byte()
 
-        if available(availability_mask, OwnOrderDataMask.DROP_ALL):
+        if available(availability_mask, OwnOrder.DataFlag.DROP_ALL):
             return None
         
         order_type = OwnOrder.Type.NONE
 
-        if available(availability_mask, OwnOrderDataMask.ACTIVE):
-            if available(availability_mask, OwnOrderDataMask.STOP):
+        if available(availability_mask, OwnOrder.DataFlag.ACTIVE):
+            if available(availability_mask, OwnOrder.DataFlag.STOP):
                 order_type = OwnOrder.Type.STOP
             else:
                 order_type = OwnOrder.Type.REGULAR
@@ -561,5 +589,6 @@ class QshFile:
         self.own_trades_last_price    = self.read_relative(self.own_trades_last_price)
 
         volume = self.read_leb128()
+        timestamp = to_datetime(self.own_trades_last_milliseconds).replace(tzinfo=self.to_zone)
 
-        return OwnTrade(to_datetime(self.own_trades_last_milliseconds), self.own_trades_last_trade_id, self.own_trades_last_order_id, self.own_trades_last_price, volume)
+        return OwnTrade(timestamp, self.own_trades_last_trade_id, self.own_trades_last_order_id, self.own_trades_last_price, volume)

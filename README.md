@@ -17,6 +17,8 @@ Supported data streams:
 - AuxInfo
 - OrdLog
 
+QSH Specification - [https://www.qscalp.ru/store/qsh.pdf](https://www.qscalp.ru/store/qsh.pdf)
+
 Links to QSH archives:
 
 - [http://finam.qscalp.ru/](https://bit.ly/2N51OZe)
@@ -46,7 +48,7 @@ with qsh.open("Si-9.18.2018-08-24.OrdLog.qsh") as qsh_file:
     print("Streams count: " + str(qsh_file.header.streams_count))
 
     # If file contains one stream
-    stream_type, instrument_code = qsh_file.read_stream_header()
+    stream_type, stream_info = qsh_file.read_stream_header()
 
     # Read frame header & frame data for one stream case
     try:
@@ -82,15 +84,4 @@ with qsh.open("Si-9.18.2018-08-24.OrdLog.qsh") as qsh_file:
         pass
 ```
 
-By default all timestamps are in UTC timezone so to convert them to local timezone you can use something like
-
-```
-from dateutil import tz
-
-from_zone = tz.gettz("UTC")
-to_zone   = tz.gettz("Europe/Moscow")
-
-# Get ord_log_entry from file and then
-
-ord_log_entry.exchange_timestamp.replace(tzinfo=from_zone).astimezone(to_zone)
-```
+All timestamps were converted to exchange time zone i.e. Europe/Moscow
