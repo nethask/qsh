@@ -419,7 +419,7 @@ class QshFile:
                 quantity -= self.last_amount
 
             if quantity == 0:
-                del self.quotes[self.last_order_price]
+                self.quotes.pop(self.last_order_price, None)
             else:
                 self.quotes[self.last_order_price] = quantity
 
