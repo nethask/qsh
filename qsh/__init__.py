@@ -191,7 +191,7 @@ class QshFile:
         self.fileobj = gzip.open(filename, mode)
 
         signature = self.read(len(self.header.signature.encode("utf8")))
-    
+
         if self.header.signature != signature:
             self.fileobj = io.open(filename, mode)
 
@@ -206,7 +206,7 @@ class QshFile:
         self.last_created_at_milliseconds = to_milliseconds(self.read_datetime())
         self.header.created_at    = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
         self.header.streams_count = self.read_byte()
-            
+
     def __enter__(self):
         self.fileobj._checkClosed()
         return self
@@ -293,7 +293,7 @@ class QshFile:
 
         if offset == 268435455:
             offset = self.read_leb128()
-        
+
         return last_value + offset
 
     def read_growing_datetime(self, last_value):
@@ -375,22 +375,22 @@ class QshFile:
         if is_fill:
             if available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
                 self.last_order_amount_rest = self.read_leb128()
-            
+
             amount_rest = self.last_order_amount_rest
 
             if available(availability_mask, OrdLogEntry.DataFlag.DEAL_ID):
                 self.last_deal_id = self.read_growing(self.last_deal_id)
-                
+
             deal_id = self.last_deal_id
-            
+
             if available(availability_mask, OrdLogEntry.DataFlag.DEAL_PRICE):
                 self.last_deal_price = self.read_relative(self.last_deal_price)
 
             deal_price = self.last_deal_price
-            
+
             if available(availability_mask, OrdLogEntry.DataFlag.OI_AFTER_DEAL):
                 self.last_oi_after_deal = self.read_relative(self.last_oi_after_deal)
-            
+
             oi_after_deal = self.last_oi_after_deal
         else:
             amount_rest = self.last_amount if is_add else 0
@@ -407,11 +407,7 @@ class QshFile:
 
         if (is_buy ^ is_sell) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_SYSTEM)) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_ZERO_REPL_ACT)):
             # Updating order book
-            quantity = 0
-            try:
-                quantity = self.quotes[self.last_order_price]
-            except KeyError:
-                pass
+            quantity = self.quotes.get(self.last_order_price, 0)
 
             if (is_sell if is_add else is_buy):
                 quantity += self.last_amount
@@ -419,7 +415,7 @@ class QshFile:
                 quantity -= self.last_amount
 
             if quantity == 0:
-                del self.quotes[self.last_order_price]
+                self.quotes.pop(self.last_order_price, None)
             else:
                 self.quotes[self.last_order_price] = quantity
 
@@ -559,7 +555,7 @@ class QshFile:
 
         if available(availability_mask, OwnOrder.DataFlag.DROP_ALL):
             return None
-        
+
         order_type = OwnOrder.Type.NONE
 
         if available(availability_mask, OwnOrder.DataFlag.ACTIVE):
