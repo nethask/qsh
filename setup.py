@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='qsh',
-    version='0.5.1',
+    version='0.5.3',
     url='https://github.com/nethask/qsh',
     author='Artyom Knyazev',
     author_email='nethask@gmail.com',
