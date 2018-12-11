@@ -70,7 +70,7 @@ class OrdLogEntry:
         self.oi_after_deal      = oi_after_deal
 
     def __str__(self):
-        return ";".join((str(self.actions_mask), self.exchange_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.exchange_order_id), str(self.order_price), str(self.amount), str(self.amount_rest), str(self.deal_id), str(self.deal_price), str(self.oi_after_deal)))
+        return ";".join((str(self.actions_mask), self.exchange_timestamp.isoformat(" "), str(self.exchange_order_id), str(self.order_price), str(self.amount), str(self.amount_rest), str(self.deal_id), str(self.deal_price), str(self.oi_after_deal)))
 
 class DealEntry:
     class DataFlag:
@@ -98,7 +98,7 @@ class DealEntry:
         self.order_id  = order_id
 
     def __str__(self):
-        return ";".join((str(self.type), str(self.id), self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.price), str(self.volume), str(self.oi), str(self.order_id)))
+        return ";".join((str(self.type), str(self.id), self.timestamp.isoformat(" "), str(self.price), str(self.volume), str(self.oi), str(self.order_id)))
 
 class AuxInfoEntry:
     class DataFlag:
@@ -124,7 +124,7 @@ class AuxInfoEntry:
         self.message   = message
 
     def __str__(self):
-        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.price), str(self.ask_total), str(self.bid_total), str(self.oi), str(self.hi_limit), str(self.low_limit), str(self.deposit), str(self.rate), str(self.message)))
+        return ";".join((self.timestamp.isoformat(" "), str(self.price), str(self.ask_total), str(self.bid_total), str(self.oi), str(self.hi_limit), str(self.low_limit), str(self.deposit), str(self.rate), str(self.message)))
 
 class Message:
     class Type:
@@ -138,7 +138,7 @@ class Message:
         self.text      = text
 
     def __str__(self):
-        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.type), str(self.text)))
+        return ";".join((self.timestamp.isoformat(" "), str(self.type), str(self.text)))
 
 class OwnTrade:
     def __init__(self, timestamp, trade_id, order_id, price, volume):
@@ -149,7 +149,7 @@ class OwnTrade:
         self.volume    = volume
 
     def __str__(self):
-        return ";".join((self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f"), str(self.trade_id), str(self.order_id), str(self.price), str(self.volume)))
+        return ";".join((self.timestamp.isoformat(" "), str(self.trade_id), str(self.order_id), str(self.price), str(self.volume)))
 
 class OwnOrder:
     class DataFlag:
@@ -212,6 +212,17 @@ class QshFile:
         return self
 
     def __exit__(self, *args):
+        self.fileobj.close()
+
+    def tell(self):
+        """Return an int indicating the current stream position"""
+        return self.fileobj.tell()
+
+    def seek(self, position):
+        """Change stream position"""
+        self.fileobj.seek(position)
+
+    def close(self):
         self.fileobj.close()
 
     def read(self, length):
