@@ -172,15 +172,15 @@ class OwnOrder:
     def __str__(self):
         return ";".join((str(self.type), str(self.id), str(self.price), str(self.amount_rest)))
 
-class QshFile:
+class QshFileHeader:
+    signature = "QScalp History Data"
+    version = None
+    application = None
+    comment = None
+    created_at = None
+    streams_count = None
 
-    class header:
-        signature     = "QScalp History Data"
-        version       = None
-        application   = None
-        comment       = None
-        created_at    = None
-        streams_count = None
+class QshFile:
 
     fileobj = None
 
@@ -190,21 +190,21 @@ class QshFile:
     def __init__(self, filename=None, mode=None):
         self.fileobj = gzip.open(filename, mode)
 
-        signature = self.read(len(self.header.signature.encode("utf8")))
-
-        if self.header.signature != signature:
+        signature = self.read(len(QshFileHeader.signature.encode("utf8")))
+        if QshFileHeader.signature != signature:
             self.fileobj = io.open(filename, mode)
 
-            signature = self.read(len(self.header.signature.encode("utf8")))
+            signature = self.read(len(QshFileHeader.signature.encode("utf8")))
 
-            if self.header.signature != signature:
+            if QshFileHeader.signature != signature:
                 raise TypeError("Unsupported file format")
 
-        self.header.version       = self.read_byte()
-        self.header.application   = self.read_string()
-        self.header.comment       = self.read_string()
+        self.header = QshFileHeader()
+        self.header.version = self.read_byte()
+        self.header.application = self.read_string()
+        self.header.comment = self.read_string()
         self.last_created_at_milliseconds = to_milliseconds(self.read_datetime())
-        self.header.created_at    = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
+        self.header.created_at = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
         self.header.streams_count = self.read_byte()
 
     def __enter__(self):
