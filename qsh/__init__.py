@@ -207,6 +207,14 @@ class QshFile:
         self.header.created_at = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
         self.header.streams_count = self.read_byte()
 
+        # Last values for read_ord_log_data()
+        self.quotes = {}
+        self.external_quotes = {}
+
+        # Last values for read_quotes_data()
+        self.quotes_last_price = 0
+        self.quotes_dict = {}
+
     def __enter__(self):
         self.fileobj._checkClosed()
         return self
@@ -351,9 +359,6 @@ class QshFile:
 
     last_pushed_deal_id        = 0
 
-    quotes = {}
-    external_quotes = {}
-
     def read_ord_log_data(self):
         """Reads order log data from file"""
         availability_mask = self.read_byte()
@@ -458,10 +463,6 @@ class QshFile:
         message_text      = self.read_string()
 
         return Message(message_timestamp, message_type, message_text)
-
-    # Last values for read_quotes_data()
-    quotes_last_price = 0
-    quotes_dict       = {}
 
     def read_quotes_data(self):
         """Reads quotes data from file"""
