@@ -172,15 +172,15 @@ class OwnOrder:
     def __str__(self):
         return ";".join((str(self.type), str(self.id), str(self.price), str(self.amount_rest)))
 
-class QshFile:
+class QshFileHeader:
+    signature = "QScalp History Data"
+    version = None
+    application = None
+    comment = None
+    created_at = None
+    streams_count = None
 
-    class header:
-        signature     = "QScalp History Data"
-        version       = None
-        application   = None
-        comment       = None
-        created_at    = None
-        streams_count = None
+class QshFile:
 
     fileobj = None
 
@@ -190,22 +190,30 @@ class QshFile:
     def __init__(self, filename=None, mode=None):
         self.fileobj = gzip.open(filename, mode)
 
-        signature = self.read(len(self.header.signature.encode("utf8")))
-
-        if self.header.signature != signature:
+        signature = self.read(len(QshFileHeader.signature.encode("utf8")))
+        if QshFileHeader.signature != signature:
             self.fileobj = io.open(filename, mode)
 
-            signature = self.read(len(self.header.signature.encode("utf8")))
+            signature = self.read(len(QshFileHeader.signature.encode("utf8")))
 
-            if self.header.signature != signature:
+            if QshFileHeader.signature != signature:
                 raise TypeError("Unsupported file format")
 
-        self.header.version       = self.read_byte()
-        self.header.application   = self.read_string()
-        self.header.comment       = self.read_string()
+        self.header = QshFileHeader()
+        self.header.version = self.read_byte()
+        self.header.application = self.read_string()
+        self.header.comment = self.read_string()
         self.last_created_at_milliseconds = to_milliseconds(self.read_datetime())
-        self.header.created_at    = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
+        self.header.created_at = to_datetime(self.last_created_at_milliseconds).replace(tzinfo=self.from_zone).astimezone(self.to_zone)
         self.header.streams_count = self.read_byte()
+
+        # Last values for read_ord_log_data()
+        self.quotes = {}
+        self.external_quotes = {}
+
+        # Last values for read_quotes_data()
+        self.quotes_last_price = 0
+        self.quotes_dict = {}
 
     def __enter__(self):
         self.fileobj._checkClosed()
@@ -351,9 +359,6 @@ class QshFile:
 
     last_pushed_deal_id        = 0
 
-    quotes = {}
-    external_quotes = {}
-
     def read_ord_log_data(self):
         """Reads order log data from file"""
         availability_mask = self.read_byte()
@@ -458,10 +463,6 @@ class QshFile:
         message_text      = self.read_string()
 
         return Message(message_timestamp, message_type, message_text)
-
-    # Last values for read_quotes_data()
-    quotes_last_price = 0
-    quotes_dict       = {}
 
     def read_quotes_data(self):
         """Reads quotes data from file"""
