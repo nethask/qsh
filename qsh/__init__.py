@@ -2,6 +2,7 @@ import io
 import gzip
 import struct
 import datetime
+from collections import namedtuple
 from dateutil import tz
 
 def open(filename, mode="rb"):
@@ -29,7 +30,12 @@ class StreamType:
     AUX_INFO   = 96
     ORD_LOG    = 112
 
-class OrdLogEntry:
+OrdLogNamedTuple = namedtuple(
+    'OrdLogNamedTuple',
+    'actions_mask,exchange_timestamp,exchange_order_id,order_price,amount,amount_rest,deal_id,deal_price,oi_after_deal',
+)
+
+class OrdLogEntry(OrdLogNamedTuple):
     class DataFlag:
         DATETIME          = 1
         ORDER_ID          = 2
@@ -58,21 +64,12 @@ class OrdLogEntry:
         CANCELED_GROUP     = 16384
         CROSS_TRADE        = 32768
 
-    def __init__(self, actions_mask, exchange_timestamp, exchange_order_id, order_price, amount, amount_rest, deal_id, deal_price, oi_after_deal):
-        self.actions_mask       = actions_mask
-        self.exchange_timestamp = exchange_timestamp
-        self.exchange_order_id  = exchange_order_id
-        self.order_price        = order_price
-        self.amount             = amount
-        self.amount_rest        = amount_rest
-        self.deal_id            = deal_id
-        self.deal_price         = deal_price
-        self.oi_after_deal      = oi_after_deal
+DealEntryNamedTuple = namedtuple(
+    'DealEntryNamedTuple',
+    'type,id,timestamp,price,volume,oi,order_id',
+)
 
-    def __str__(self):
-        return ";".join((str(self.actions_mask), self.exchange_timestamp.isoformat(" "), str(self.exchange_order_id), str(self.order_price), str(self.amount), str(self.amount_rest), str(self.deal_id), str(self.deal_price), str(self.oi_after_deal)))
-
-class DealEntry:
+class DealEntry(DealEntryNamedTuple):
     class DataFlag:
         TYPE     = 3
         DATETIME = 4
@@ -88,19 +85,12 @@ class DealEntry:
         SELL     = 2
         RESERVED = 3
 
-    def __init__(self, deal_type, deal_id, timestamp, price, volume, oi, order_id):
-        self.type      = deal_type
-        self.id        = deal_id
-        self.timestamp = timestamp
-        self.price     = price
-        self.volume    = volume
-        self.oi        = oi
-        self.order_id  = order_id
+AuxInfoNamedTuple = namedtuple(
+    'AuxInfoNamedTuple',
+    'timestamp,price,ask_total,bid_total,oi,hi_limit,low_limit,deposit,rate,message',
+)
 
-    def __str__(self):
-        return ";".join((str(self.type), str(self.id), self.timestamp.isoformat(" "), str(self.price), str(self.volume), str(self.oi), str(self.order_id)))
-
-class AuxInfoEntry:
+class AuxInfoEntry(AuxInfoNamedTuple):
     class DataFlag:
         DATETIME     = 1
         ASK_TOTAL    = 2
@@ -111,47 +101,28 @@ class AuxInfoEntry:
         RATE         = 64
         MESSAGE      = 128
 
-    def __init__(self, timestamp, price, ask_total, bid_total, oi, hi_limit, low_limit, deposit, rate, message):
-        self.timestamp = timestamp
-        self.price     = price
-        self.ask_total = ask_total
-        self.bid_total = bid_total
-        self.oi        = oi
-        self.hi_limit  = hi_limit
-        self.low_limit = low_limit
-        self.deposit   = deposit
-        self.rate      = rate
-        self.message   = message
+MessageNamedTuple = namedtuple(
+    'MessageNamedTuple',
+    'timestamp,type,text',
+)
 
-    def __str__(self):
-        return ";".join((self.timestamp.isoformat(" "), str(self.price), str(self.ask_total), str(self.bid_total), str(self.oi), str(self.hi_limit), str(self.low_limit), str(self.deposit), str(self.rate), str(self.message)))
-
-class Message:
+class Message(MessageNamedTuple):
     class Type:
         INFORMATION = 1
         WARNING     = 2
         ERROR       = 3
 
-    def __init__(self, timestamp, message_type, text):
-        self.timestamp = timestamp
-        self.type      = message_type
-        self.text      = text
+OwnTrade = namedtuple(
+    'OwnTradeNamedTuple',
+    'timestamp,trade_id,order_id,price,volume',
+)
 
-    def __str__(self):
-        return ";".join((self.timestamp.isoformat(" "), str(self.type), str(self.text)))
+OwnOrderNamedTuple = namedtuple(
+    'OwnOrderNamedTuple',
+    'type,id,price,amount_rest',
+)
 
-class OwnTrade:
-    def __init__(self, timestamp, trade_id, order_id, price, volume):
-        self.timestamp = timestamp
-        self.trade_id  = trade_id
-        self.order_id  = order_id
-        self.price     = price
-        self.volume    = volume
-
-    def __str__(self):
-        return ";".join((self.timestamp.isoformat(" "), str(self.trade_id), str(self.order_id), str(self.price), str(self.volume)))
-
-class OwnOrder:
+class OwnOrder(OwnOrderNamedTuple):
     class DataFlag:
         DROP_ALL = 1
         ACTIVE   = 2
@@ -162,15 +133,6 @@ class OwnOrder:
         NONE    = 0
         REGULAR = 1
         STOP    = 2
-
-    def __init__(self, order_type, order_id, price, amount_rest):
-        self.type        = order_type
-        self.id          = order_id
-        self.price       = price
-        self.amount_rest = amount_rest
-
-    def __str__(self):
-        return ";".join((str(self.type), str(self.id), str(self.price), str(self.amount_rest)))
 
 class QshFileHeader:
     signature = "QScalp History Data"
