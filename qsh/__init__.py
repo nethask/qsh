@@ -320,7 +320,6 @@ class QshFile:
         actions_mask      = self.read_uint16()
 
         is_add  = available(actions_mask, OrdLogEntry.ActionFlag.ADD)
-        is_fill = available(actions_mask, OrdLogEntry.ActionFlag.FILL)
         is_buy  = available(actions_mask, OrdLogEntry.ActionFlag.BUY)
         is_sell = available(actions_mask, OrdLogEntry.ActionFlag.SELL)
 
@@ -343,7 +342,7 @@ class QshFile:
         if available(availability_mask, OrdLogEntry.DataFlag.AMOUNT):
             self.last_amount = self.read_leb128()
 
-        if is_fill:
+        if available(actions_mask, OrdLogEntry.ActionFlag.FILL):
             if available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
                 self.last_order_amount_rest = self.read_leb128()
 
