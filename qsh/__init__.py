@@ -143,9 +143,6 @@ class QshFileHeader:
     streams_count = None
 
 class QshFile:
-
-    fileobj = None
-
     from_zone = tz.gettz("UTC")
     to_zone   = tz.gettz("Europe/Moscow")
 
@@ -322,10 +319,10 @@ class QshFile:
         availability_mask = self.read_byte()
         actions_mask      = self.read_uint16()
 
-        is_add  = True if available(actions_mask, OrdLogEntry.ActionFlag.ADD) else False
-        is_fill = True if available(actions_mask, OrdLogEntry.ActionFlag.FILL) else False
-        is_buy  = True if available(actions_mask, OrdLogEntry.ActionFlag.BUY) else False
-        is_sell = True if available(actions_mask, OrdLogEntry.ActionFlag.SELL) else False
+        is_add  = available(actions_mask, OrdLogEntry.ActionFlag.ADD)
+        is_fill = available(actions_mask, OrdLogEntry.ActionFlag.FILL)
+        is_buy  = available(actions_mask, OrdLogEntry.ActionFlag.BUY)
+        is_sell = available(actions_mask, OrdLogEntry.ActionFlag.SELL)
 
         if available(availability_mask, OrdLogEntry.DataFlag.DATETIME):
             self.last_exchange_milliseconds = to_milliseconds(self.read_growing_datetime(self.last_exchange_milliseconds))
