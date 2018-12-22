@@ -177,6 +177,8 @@ class QshFile:
         self.quotes_last_price = 0
         self.quotes_dict = {}
 
+        self.last_frame_milliseconds = self.last_created_at_milliseconds
+
     def __enter__(self):
         self.fileobj._checkClosed()
         return self
@@ -292,13 +294,7 @@ class QshFile:
 
         return stream_type, instrument_code
 
-    # Last values for read_frame_header()
-    last_frame_milliseconds = None
-
     def read_frame_header(self):
-        if self.last_frame_milliseconds is None:
-            self.last_frame_milliseconds = self.last_created_at_milliseconds
-
         timestamp = self.read_growing_datetime(self.last_frame_milliseconds)
         self.last_frame_milliseconds = to_milliseconds(timestamp)
         timestamp = timestamp.replace(tzinfo=self.from_zone).astimezone(self.to_zone)
