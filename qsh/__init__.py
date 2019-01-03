@@ -17,7 +17,7 @@ def to_datetime(milliseconds_value):
     """Converts milliseconds since 01.01.0001 00:00:00 to datetime value"""
     return datetime.datetime(1, 1, 1) + datetime.timedelta(milliseconds=milliseconds_value)
 
-def available(list_mask, item_mask):
+def is_available(list_mask, item_mask):
     """Checks if item are in list using mask"""
     return (list_mask & item_mask) != 0
 
@@ -319,16 +319,16 @@ class QshFile:
         availability_mask = self.read_byte()
         actions_mask      = self.read_uint16()
 
-        is_add  = available(actions_mask, OrdLogEntry.ActionFlag.ADD)
-        is_buy  = available(actions_mask, OrdLogEntry.ActionFlag.BUY)
-        is_sell = available(actions_mask, OrdLogEntry.ActionFlag.SELL)
+        is_add  = is_available(actions_mask, OrdLogEntry.ActionFlag.ADD)
+        is_buy  = is_available(actions_mask, OrdLogEntry.ActionFlag.BUY)
+        is_sell = is_available(actions_mask, OrdLogEntry.ActionFlag.SELL)
 
-        if available(availability_mask, OrdLogEntry.DataFlag.DATETIME):
+        if is_available(availability_mask, OrdLogEntry.DataFlag.DATETIME):
             self.last_exchange_milliseconds = to_milliseconds(self.read_growing_datetime(self.last_exchange_milliseconds))
 
         exchange_timestamp = to_datetime(self.last_exchange_milliseconds).replace(tzinfo=self.to_zone)
 
-        if not available(availability_mask, OrdLogEntry.DataFlag.ORDER_ID):
+        if not is_available(availability_mask, OrdLogEntry.DataFlag.ORDER_ID):
             exchange_order_id = self.last_order_id
         elif is_add:
             self.last_order_id = self.read_growing(self.last_order_id)
@@ -336,29 +336,29 @@ class QshFile:
         else:
             exchange_order_id = self.read_relative(self.last_order_id)
 
-        if available(availability_mask, OrdLogEntry.DataFlag.ORDER_PRICE):
+        if is_available(availability_mask, OrdLogEntry.DataFlag.ORDER_PRICE):
             self.last_order_price = self.read_relative(self.last_order_price)
 
-        if available(availability_mask, OrdLogEntry.DataFlag.AMOUNT):
+        if is_available(availability_mask, OrdLogEntry.DataFlag.AMOUNT):
             self.last_amount = self.read_leb128()
 
-        if available(actions_mask, OrdLogEntry.ActionFlag.FILL):
-            if available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
+        if is_available(actions_mask, OrdLogEntry.ActionFlag.FILL):
+            if is_available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
                 self.last_order_amount_rest = self.read_leb128()
 
             amount_rest = self.last_order_amount_rest
 
-            if available(availability_mask, OrdLogEntry.DataFlag.DEAL_ID):
+            if is_available(availability_mask, OrdLogEntry.DataFlag.DEAL_ID):
                 self.last_deal_id = self.read_growing(self.last_deal_id)
 
             deal_id = self.last_deal_id
 
-            if available(availability_mask, OrdLogEntry.DataFlag.DEAL_PRICE):
+            if is_available(availability_mask, OrdLogEntry.DataFlag.DEAL_PRICE):
                 self.last_deal_price = self.read_relative(self.last_deal_price)
 
             deal_price = self.last_deal_price
 
-            if available(availability_mask, OrdLogEntry.DataFlag.OI_AFTER_DEAL):
+            if is_available(availability_mask, OrdLogEntry.DataFlag.OI_AFTER_DEAL):
                 self.last_oi_after_deal = self.read_relative(self.last_oi_after_deal)
 
             oi_after_deal = self.last_oi_after_deal
@@ -372,10 +372,10 @@ class QshFile:
         deal_entry     = None
         aux_info_entry = None
 
-        if available(actions_mask, OrdLogEntry.ActionFlag.FLOW_START):
+        if is_available(actions_mask, OrdLogEntry.ActionFlag.FLOW_START):
             self.quotes = {}
 
-        if (is_buy ^ is_sell) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_SYSTEM)) and (not available(actions_mask, OrdLogEntry.ActionFlag.NON_ZERO_REPL_ACT)):
+        if (is_buy ^ is_sell) and (not is_available(actions_mask, OrdLogEntry.ActionFlag.NON_SYSTEM)) and (not is_available(actions_mask, OrdLogEntry.ActionFlag.NON_ZERO_REPL_ACT)):
             # Updating order book
             quantity = self.quotes.get(self.last_order_price, 0)
 
@@ -389,7 +389,7 @@ class QshFile:
             else:
                 self.quotes[self.last_order_price] = quantity
 
-            if available(actions_mask, OrdLogEntry.ActionFlag.END_OF_TRANSACTION):
+            if is_available(actions_mask, OrdLogEntry.ActionFlag.END_OF_TRANSACTION):
                 self.external_quotes = dict(self.quotes)
 
                 ask_total = 0
@@ -446,22 +446,22 @@ class QshFile:
 
         deal_type = availability_mask & DealEntry.DataFlag.TYPE
 
-        if available(availability_mask, DealEntry.DataFlag.DATETIME):
+        if is_available(availability_mask, DealEntry.DataFlag.DATETIME):
             self.deals_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.deals_last_milliseconds))
 
-        if available(availability_mask, DealEntry.DataFlag.ID):
+        if is_available(availability_mask, DealEntry.DataFlag.ID):
             self.deals_last_id = self.read_growing(self.deals_last_id)
 
-        if available(availability_mask, DealEntry.DataFlag.ORDER_ID):
+        if is_available(availability_mask, DealEntry.DataFlag.ORDER_ID):
             self.deals_last_order_id = self.read_relative(self.deals_last_order_id)
 
-        if available(availability_mask, DealEntry.DataFlag.PRICE):
+        if is_available(availability_mask, DealEntry.DataFlag.PRICE):
             self.deals_last_price = self.read_relative(self.deals_last_price)
 
-        if available(availability_mask, DealEntry.DataFlag.VOLUME):
+        if is_available(availability_mask, DealEntry.DataFlag.VOLUME):
             self.deals_last_volume = self.read_leb128()
 
-        if available(availability_mask, DealEntry.DataFlag.OI):
+        if is_available(availability_mask, DealEntry.DataFlag.OI):
             self.deals_last_oi = self.read_relative(self.deals_last_oi)
 
         deal_timestamp = to_datetime(self.deals_last_milliseconds).replace(tzinfo=self.to_zone)
@@ -483,30 +483,30 @@ class QshFile:
         """Reads auxinfo data from file"""
         availability_mask = self.read_byte()
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.DATETIME):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.DATETIME):
             self.auxinfo_last_milliseconds = to_milliseconds(self.read_growing_datetime(self.auxinfo_last_milliseconds))
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.ASK_TOTAL):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.ASK_TOTAL):
             self.auxinfo_last_ask_total = self.read_relative(self.auxinfo_last_ask_total)
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.BID_TOTAL):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.BID_TOTAL):
             self.auxinfo_last_bid_total = self.read_relative(self.auxinfo_last_bid_total)
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.OI):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.OI):
             self.auxinfo_last_oi = self.read_relative(self.auxinfo_last_oi)
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.PRICE):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.PRICE):
             self.auxinfo_last_price = self.read_relative(self.auxinfo_last_price)
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.SESSION_INFO):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.SESSION_INFO):
             self.auxinfo_last_hi_limit  = self.read_leb128()
             self.auxinfo_last_low_limit = self.read_leb128()
             self.auxinfo_last_deposit   = self.read_double()
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.RATE):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.RATE):
             self.auxinfo_last_rate = self.read_double()
 
-        if available(availability_mask, AuxInfoEntry.DataFlag.MESSAGE):
+        if is_available(availability_mask, AuxInfoEntry.DataFlag.MESSAGE):
             message = self.read_string()
         else:
             message = ""
@@ -519,13 +519,13 @@ class QshFile:
         """Reads own orders data from file"""
         availability_mask = self.read_byte()
 
-        if available(availability_mask, OwnOrder.DataFlag.DROP_ALL):
+        if is_available(availability_mask, OwnOrder.DataFlag.DROP_ALL):
             return None
 
         order_type = OwnOrder.Type.NONE
 
-        if available(availability_mask, OwnOrder.DataFlag.ACTIVE):
-            if available(availability_mask, OwnOrder.DataFlag.STOP):
+        if is_available(availability_mask, OwnOrder.DataFlag.ACTIVE):
+            if is_available(availability_mask, OwnOrder.DataFlag.STOP):
                 order_type = OwnOrder.Type.STOP
             else:
                 order_type = OwnOrder.Type.REGULAR
