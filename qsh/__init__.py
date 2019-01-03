@@ -143,9 +143,6 @@ class QshFileHeader:
     streams_count = None
 
 class QshFile:
-
-    fileobj = None
-
     from_zone = tz.gettz("UTC")
     to_zone   = tz.gettz("Europe/Moscow")
 
@@ -176,6 +173,8 @@ class QshFile:
         # Last values for read_quotes_data()
         self.quotes_last_price = 0
         self.quotes_dict = {}
+
+        self.last_frame_milliseconds = self.last_created_at_milliseconds
 
     def __enter__(self):
         self.fileobj._checkClosed()
@@ -292,13 +291,7 @@ class QshFile:
 
         return stream_type, instrument_code
 
-    # Last values for read_frame_header()
-    last_frame_milliseconds = None
-
     def read_frame_header(self):
-        if self.last_frame_milliseconds is None:
-            self.last_frame_milliseconds = self.last_created_at_milliseconds
-
         timestamp = self.read_growing_datetime(self.last_frame_milliseconds)
         self.last_frame_milliseconds = to_milliseconds(timestamp)
         timestamp = timestamp.replace(tzinfo=self.from_zone).astimezone(self.to_zone)
@@ -326,10 +319,9 @@ class QshFile:
         availability_mask = self.read_byte()
         actions_mask      = self.read_uint16()
 
-        is_add  = True if available(actions_mask, OrdLogEntry.ActionFlag.ADD) else False
-        is_fill = True if available(actions_mask, OrdLogEntry.ActionFlag.FILL) else False
-        is_buy  = True if available(actions_mask, OrdLogEntry.ActionFlag.BUY) else False
-        is_sell = True if available(actions_mask, OrdLogEntry.ActionFlag.SELL) else False
+        is_add  = available(actions_mask, OrdLogEntry.ActionFlag.ADD)
+        is_buy  = available(actions_mask, OrdLogEntry.ActionFlag.BUY)
+        is_sell = available(actions_mask, OrdLogEntry.ActionFlag.SELL)
 
         if available(availability_mask, OrdLogEntry.DataFlag.DATETIME):
             self.last_exchange_milliseconds = to_milliseconds(self.read_growing_datetime(self.last_exchange_milliseconds))
@@ -350,7 +342,7 @@ class QshFile:
         if available(availability_mask, OrdLogEntry.DataFlag.AMOUNT):
             self.last_amount = self.read_leb128()
 
-        if is_fill:
+        if available(actions_mask, OrdLogEntry.ActionFlag.FILL):
             if available(availability_mask, OrdLogEntry.DataFlag.ORDER_AMOUNT_REST):
                 self.last_order_amount_rest = self.read_leb128()
 
