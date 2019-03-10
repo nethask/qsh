@@ -5,7 +5,7 @@
     "distutils": {
         "name": "qsh.__init__", 
         "sources": [
-            "qsh/__init__.py"
+            "/home/nethask/Projects/qsh/qsh/__init__.py"
         ]
     }, 
     "module_name": "qsh.__init__"
