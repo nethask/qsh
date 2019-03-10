@@ -1,14 +1,13 @@
-from setuptools import setup, find_packages
-from Cython.Build import cythonize
+from setuptools import setup, find_packages, Extension
 
 setup(
     name='qsh',
-    version='0.7.4',
+    version='0.7.10',
     packages=find_packages(),
     url='https://github.com/nethask/qsh',
     author='Artyom Knyazev',
     author_email='nethask@gmail.com',
     license='MIT',
     install_requires=['python-dateutil'],
-    ext_modules=cythonize("qsh/*.py")
+    ext_modules=[Extension('qsh.__init__', ['qsh/__init__.c'])]
 )

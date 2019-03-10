@@ -31,6 +31,8 @@ Links to QSH archives:
 pip install qsh
 ```
 
+Tip: consider to install `python-dev` if you are facing `python.h no such file or directory`.
+
 ## Usage
 
 For case of **one stream** in a file
