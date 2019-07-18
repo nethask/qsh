@@ -2,6 +2,7 @@ import io
 import gzip
 import struct
 import datetime
+import six
 from collections import namedtuple
 from dateutil import tz
 
@@ -149,11 +150,11 @@ class QshFile:
     def __init__(self, filename=None, mode=None):
         self.fileobj = gzip.open(filename, mode)
 
-        signature = self.read(len(QshFileHeader.signature.encode("utf8")))
+        signature = self.read(len(QshFileHeader.signature.encode("utf8"))).decode('ascii')
         if QshFileHeader.signature != signature:
             self.fileobj = io.open(filename, mode)
 
-            signature = self.read(len(QshFileHeader.signature.encode("utf8")))
+            signature = self.read(len(QshFileHeader.signature.encode("utf8"))).decode('ascii')
 
             if QshFileHeader.signature != signature:
                 raise TypeError("Unsupported file format")
@@ -240,14 +241,14 @@ class QshFile:
 
     def read_string(self):
         length = self.read_uleb128()
-        return self.read(length)
+        return self.read(length).decode('ascii')
 
     def read_int64(self):
         return struct.unpack("q", self.read(8))[0]
 
     def read_datetime(self):
         nanoseconds = self.read_int64()
-        return datetime.datetime(1, 1, 1) + datetime.timedelta(microseconds=nanoseconds/10)
+        return datetime.datetime(1, 1, 1) + datetime.timedelta(microseconds=nanoseconds//10)
 
     def read_byte(self):
         return struct.unpack("B", self.read(1))[0]
@@ -395,7 +396,7 @@ class QshFile:
                 ask_total = 0
                 bid_total = 0
 
-                for key, value in self.quotes.iteritems():
+                for key, value in six.iteritems(self.quotes):
                     if value > 0:
                         ask_total += value
                     else:
