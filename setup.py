@@ -2,7 +2,7 @@ from setuptools import setup, find_packages, Extension
 
 setup(
     name='qsh',
-    version='0.7.10',
+    version='0.8.1',
     packages=find_packages(),
     url='https://github.com/nethask/qsh',
     author='Artyom Knyazev',
