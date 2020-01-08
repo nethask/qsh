@@ -148,16 +148,15 @@ class QshFile:
     to_zone   = tz.gettz("Europe/Moscow")
 
     def __init__(self, filename=None, mode=None):
-        self.fileobj = gzip.open(filename, mode)
+        self.fileobj = io.open(filename, mode)
+
+        if (self.fileobj.read(2) == b'\x1f\x8b'):
+            self.fileobj.seek(0)
+            self.fileobj = gzip.GzipFile(mode=mode, fileobj=self.fileobj)
+        else:
+            self.fileobj.seek(0)
 
         signature = self.read(len(QshFileHeader.signature.encode("utf8"))).decode('ascii')
-        if QshFileHeader.signature != signature:
-            self.fileobj = io.open(filename, mode)
-
-            signature = self.read(len(QshFileHeader.signature.encode("utf8"))).decode('ascii')
-
-            if QshFileHeader.signature != signature:
-                raise TypeError("Unsupported file format")
 
         self.header = QshFileHeader()
         self.header.version = self.read_byte()
@@ -199,7 +198,7 @@ class QshFile:
         """Reads 'length' bytes from fileobj and raises EORError if end of the fileobj reached"""
         result = self.fileobj.read(length)
 
-        if result == '': # OR b'' ?
+        if result == six.b(''):
             raise EOFError
 
         return result
