@@ -427,7 +427,7 @@ class QshFile:
             volume = self.read_leb128()
 
             if volume == 0:
-                del self.quotes_dict[self.quotes_last_price]
+                self.quotes_dict.pop(self.quotes_last_price, None)
             else:
                 self.quotes_dict[self.quotes_last_price] = volume
 
